@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Arial", sans-serif;
+  --color-fg-dark: #2c3e50;
+  --color-fg-teal: #3dbdaf;
+  --color-fg-blue: #5b9bd5;
+  --color-fg-green: #5ba65b;
+  --color-fg-orange: #d08030;
+  --color-fg-purple: #6c5bb5;
+  --color-fg-bg: #f4f4f4;
+  --color-fg-border: #ddd;
+}
+
+@layer base {
+  body {
+    @apply bg-fg-bg text-[#333] font-sans antialiased;
+    font-size: 13px;
+  }
+
+  input, select {
+    @apply border border-[#ccc] rounded-[2px] px-2 py-1.5 text-[12px] bg-white transition-colors duration-200 outline-none w-full;
+  }
+
+  input:focus, select:focus {
+    @apply border-fg-blue;
+  }
+
+  label {
+    @apply text-[11px] text-[#666] mb-1 block;
+  }
+}
+
+.admin-pill {
+    @apply bg-fg-teal text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[10px] ml-2 tracking-wider;
+}
+
+.nav-item {
+  @apply text-[#ccc] text-[12px] no-underline h-full flex items-center px-4 border-b-3 border-transparent transition-all;
+}
+
+.nav-item.active {
+  @apply text-white border-fg-teal;
+}
+
+.nav-item:hover:not(.active) {
+  @apply text-white border-fg-teal/50;
+}
+
+.panel-card {
+    @apply bg-white border border-fg-border rounded-[2px] overflow-hidden mb-4 flex flex-col;
+}
+
+.panel-header {
+    @apply flex items-center px-3.5 h-[36px] text-white text-[13px] font-medium cursor-pointer select-none shrink-0;
+}
+
+.panel-body {
+    @apply p-3.5;
+}
+
+.table-container {
+    @apply w-full overflow-x-auto border border-fg-border;
+}
+
+table {
+    @apply w-full border-collapse text-[12px];
+}
+
+th {
+    @apply bg-[#eef3f8] text-[#555] font-semibold text-left border border-fg-border px-2.5 py-2 sticky top-0 z-10;
+}
+
+td {
+    @apply border border-[#e5e5e5] px-2.5 py-1.5 align-middle;
+}
+
+tr:hover td {
+    @apply bg-[#f9fbfd];
+}
+
+.footer-row td {
+    @apply bg-[#f9f9f9] font-bold border-t-2 border-[#ccc];
+}
+
+.btn {
+    @apply inline-flex items-center justify-center px-3.5 py-1.5 rounded-[2px] text-[12px] font-normal transition-opacity active:opacity-80 disabled:opacity-45 h-[28px] cursor-pointer whitespace-nowrap;
+}
+
+.btn-primary { @apply bg-fg-blue text-white border-none; }
+.btn-success { @apply bg-fg-green text-white border-none; }
+.btn-warning { @apply bg-fg-orange text-white border-none; }
+.btn-secondary { @apply bg-white border border-[#ccc] text-[#333]; }
+
+.badge {
+  @apply rounded-[10px] text-[10px] px-1.5 py-0.5 font-semibold;
+}
+
+.badge-green { @apply bg-[#dff0d8] text-[#2d6a2d]; }
+.badge-yellow { @apply bg-[#fdf2d0] text-[#8a6200]; }
+.badge-red { @apply bg-[#f9dcdc] text-[#922]; }

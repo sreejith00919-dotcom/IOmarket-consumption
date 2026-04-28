@@ -1,0 +1,6 @@
+{
+  "name": "Fairgate eBill & PaperMailing Consumption",
+  "description": "Internal admin dashboard for Fairgate administrators to monitor and reconcile dispatch consumption and IOMARKET costs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
