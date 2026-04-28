@@ -169,22 +169,13 @@
                         <table id="consumptionTable">
                             <thead>
                                 <tr>
-                                    <th rowspan="2">Club Name</th>
-                                    <th rowspan="2" class="text-center">eBill</th>
-                                    <th colspan="7" class="text-center">PaperMail Breakdown</th>
-                                    <th rowspan="2" class="text-center">Total</th>
-                                    <th rowspan="2" class="text-right">Total Cost</th>
-                                    <th rowspan="2" class="text-right">FG Profit</th>
-                                    <th rowspan="2" class="text-center">Fail. Rate</th>
-                                </tr>
-                                <tr>
-                                    <th class="text-center text-[10px] font-normal uppercase">Dom.-A</th>
-                                    <th class="text-center text-[10px] font-normal uppercase">Dom.-B1</th>
-                                    <th class="text-center text-[10px] font-normal uppercase">Dom.-B2</th>
-                                    <th class="text-center text-[10px] font-normal uppercase">Europe</th>
-                                    <th class="text-center text-[10px] font-normal uppercase">ROW</th>
-                                    <th class="text-center text-[10px] font-normal uppercase">Add.</th>
-                                    <th class="text-center text-[10px] font-normal uppercase">Ret.</th>
+                                    <th>Club Name</th>
+                                    <th class="text-center">eBill Dispatches</th>
+                                    <th class="text-center">Papermail Dispatches</th>
+                                    <th class="text-right">Total Cost Papermail</th>
+                                    <th class="text-right">Total Cost eBill</th>
+                                    <th class="text-right">FG Profit eBill</th>
+                                    <th class="text-right">FG Profit Papermail</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody"></tbody>
@@ -232,31 +223,46 @@
             summaries = SWISS_CLUBS.map(club => {
                 const totalCount = Math.floor(Math.random() * 500) + 50;
                 const ebill = Math.floor(totalCount * 0.6);
-                const pmTotal = totalCount - ebill;
+                const pmTotalCount = totalCount - ebill;
                 
                 // Distribute PM stats
-                const domA = Math.floor(pmTotal * 0.3);
-                const domB1 = Math.floor(pmTotal * 0.1);
-                const domB2 = Math.floor(pmTotal * 0.1);
-                const eur = Math.floor(pmTotal * 0.1);
-                const row = Math.floor(pmTotal * 0.1);
-                const add = Math.floor(pmTotal * 0.2);
-                const ret = pmTotal - (domA + domB1 + domB2 + eur + row + add);
+                const domA = Math.floor(pmTotalCount * 0.3);
+                const domB1 = Math.floor(pmTotalCount * 0.1);
+                const domB2 = Math.floor(pmTotalCount * 0.1);
+                const eur = Math.floor(pmTotalCount * 0.1);
+                const row = Math.floor(pmTotalCount * 0.1);
+                const add = Math.floor(pmTotalCount * 0.2);
+                const ret = pmTotalCount - (domA + domB1 + domB2 + eur + row + add);
 
-                // Financials
-                const cost = (ebill * 0.15) + (domA * 1.10) + (domB1 * 0.95) + (domB2 * 0.90) + (eur * 1.80) + (row * 2.50) + (add * 0.40) + (ret * 0.80);
-                const revenue = (ebill * 0.25) + (domA * 1.45) + (domB1 * 1.25) + (domB2 * 1.20) + (eur * 2.40) + (row * 3.20) + (add * 0.60) + (ret * 1.05);
+                // Count excludes add-ons and returns as requested
+                const pmDispatchesCount = domA + domB1 + domB2 + eur + row;
 
-                const failCount = Math.floor(Math.random() * 5);
+                // Financials - eBill
+                const ebillCost = ebill * 0.15;
+                const ebillRevenue = ebill * 0.25;
+                const ebillProfit = ebillRevenue - ebillCost;
+
+                // Financials - Papermail
+                const pmCost = (domA * 1.10) + (domB1 * 0.95) + (domB2 * 0.90) + (eur * 1.80) + (row * 2.50) + (add * 0.40) + (ret * 0.80);
+                const pmRevenue = (domA * 1.45) + (domB1 * 1.25) + (domB2 * 1.20) + (eur * 2.40) + (row * 3.20) + (add * 0.60) + (ret * 1.05);
+                const pmProfit = pmRevenue - pmCost;
+
+                const ebillFail = Math.floor(Math.random() * 2);
+                const pmFail = Math.floor(Math.random() * 3);
+                const failCount = ebillFail + pmFail;
                 const failRate = (failCount / (totalCount + failCount)) * 100;
 
                 return {
                     name: club,
                     ebill, domA, domB1, domB2, eur, row, add, ret,
+                    pmDispatchesCount,
                     total: totalCount,
-                    cost,
-                    profit: revenue - cost,
-                    revenue,
+                    ebillCost, ebillProfit, ebillRevenue,
+                    pmCost, pmProfit, pmRevenue,
+                    cost: ebillCost + pmCost,
+                    profit: ebillProfit + pmProfit,
+                    revenue: ebillRevenue + pmRevenue,
+                    ebillFail, pmFail,
                     failCount,
                     failRate
                 };
@@ -281,12 +287,19 @@
                 row: acc.row + s.row,
                 add: acc.add + s.add,
                 ret: acc.ret + s.ret,
+                pmDispatchesCount: acc.pmDispatchesCount + s.pmDispatchesCount,
                 total: acc.total + s.total,
+                ebillCost: acc.ebillCost + s.ebillCost,
+                ebillProfit: acc.ebillProfit + s.ebillProfit,
+                pmCost: acc.pmCost + s.pmCost,
+                pmProfit: acc.pmProfit + s.pmProfit,
                 cost: acc.cost + s.cost,
                 profit: acc.profit + s.profit,
                 revenue: acc.revenue + s.revenue,
-                failCount: acc.failCount + Math.floor(Math.random() * 5)
-            }), { ebill: 0, domA: 0, domB1: 0, domB2: 0, eur: 0, row: 0, add: 0, ret: 0, total: 0, cost: 0, profit: 0, revenue: 0, failCount: 0 });
+                ebillFail: acc.ebillFail + s.ebillFail,
+                pmFail: acc.pmFail + s.pmFail,
+                failCount: acc.failCount + s.failCount
+            }), { ebill: 0, domA: 0, domB1: 0, domB2: 0, eur: 0, row: 0, add: 0, ret: 0, pmDispatchesCount: 0, total: 0, ebillCost: 0, ebillProfit: 0, pmCost: 0, pmProfit: 0, cost: 0, profit: 0, revenue: 0, ebillFail: 0, pmFail: 0, failCount: 0 });
         }
 
         function renderTable() {
@@ -295,21 +308,11 @@
                 <tr>
                     <td class="font-bold underline text-[#5b9bd5] cursor-pointer">${s.name}</td>
                     <td class="text-center">${s.ebill || '-'}</td>
-                    <td class="text-center">${s.domA || '-'}</td>
-                    <td class="text-center">${s.domB1 || '-'}</td>
-                    <td class="text-center">${s.domB2 || '-'}</td>
-                    <td class="text-center">${s.eur || '-'}</td>
-                    <td class="text-center">${s.row || '-'}</td>
-                    <td class="text-center">${s.add || '-'}</td>
-                    <td class="text-center">${s.ret || '-'}</td>
-                    <td class="text-center font-bold">${s.total.toLocaleString()}</td>
-                    <td class="text-right font-mono">${s.cost.toFixed(2)}</td>
-                    <td class="text-right font-bold font-mono">${s.profit.toFixed(2)}</td>
-                    <td class="text-center">
-                        <span class="badge ${s.failCount > 0 ? 'badge-red' : 'badge-green'}">
-                            ${s.failRate.toFixed(2)}%
-                        </span>
-                    </td>
+                    <td class="text-center">${s.pmDispatchesCount || '-'}</td>
+                    <td class="text-right font-mono">${s.pmCost.toFixed(2)}</td>
+                    <td class="text-right font-mono">${s.ebillCost.toFixed(2)}</td>
+                    <td class="text-right font-mono">${s.ebillProfit.toFixed(2)}</td>
+                    <td class="text-right font-bold font-mono">${s.pmProfit.toFixed(2)}</td>
                 </tr>
             `).join('');
 
@@ -318,17 +321,11 @@
                 <tr class="footer-row">
                     <td>TOTALS</td>
                     <td class="text-center">${globalTotals.ebill.toLocaleString()}</td>
-                    <td class="text-center">${globalTotals.domA.toLocaleString()}</td>
-                    <td class="text-center">${globalTotals.domB1.toLocaleString()}</td>
-                    <td class="text-center">${globalTotals.domB2.toLocaleString()}</td>
-                    <td class="text-center">${globalTotals.eur.toLocaleString()}</td>
-                    <td class="text-center">${globalTotals.row.toLocaleString()}</td>
-                    <td class="text-center">${globalTotals.add.toLocaleString()}</td>
-                    <td class="text-center">${globalTotals.ret.toLocaleString()}</td>
-                    <td class="text-center font-bold">${globalTotals.total.toLocaleString()}</td>
-                    <td class="text-right">CHF ${globalTotals.cost.toFixed(2)}</td>
-                    <td class="text-right">CHF ${globalTotals.profit.toFixed(2)}</td>
-                    <td class="text-center">${((globalTotals.failCount / (globalTotals.total + globalTotals.failCount)) * 100).toFixed(2)}%</td>
+                    <td class="text-center">${globalTotals.pmDispatchesCount.toLocaleString()}</td>
+                    <td class="text-right">CHF ${globalTotals.pmCost.toFixed(2)}</td>
+                    <td class="text-right">CHF ${globalTotals.ebillCost.toFixed(2)}</td>
+                    <td class="text-right">CHF ${globalTotals.ebillProfit.toFixed(2)}</td>
+                    <td class="text-right font-bold">CHF ${globalTotals.pmProfit.toFixed(2)}</td>
                 </tr>
             `;
         }
@@ -343,26 +340,40 @@
         }
 
         function handleExport() {
-            const data = summaries.map(s => ({
-                'Club Name': s.name,
-                'eBill': s.ebill,
-                'PM Dom-A': s.domA,
-                'PM Dom-B1': s.domB1,
-                'PM Dom-B2': s.domB2,
-                'PM Europe': s.eur,
-                'PM ROW': s.row,
-                'PM Add.': s.add,
-                'PM Returns': s.ret,
-                'Total': s.total,
-                'Total Cost (CHF)': Number(s.cost.toFixed(2)),
-                'FG Profit (CHF)': Number(s.profit.toFixed(2)),
-                'Fail Rate (%)': Number(s.failRate.toFixed(2))
-            }));
+            const data = summaries.map(s => {
+                const failRateEbill = (s.ebillFail / (s.ebill + s.ebillFail) * 100) || 0;
+                const failRatePM = (s.pmFail / (s.pmDispatchesCount + s.pmFail) * 100) || 0;
+
+                return {
+                    'Club Name': s.name,
+                    'eBill Count': s.ebill,
+                    'PM Dom-A': s.domA,
+                    'PM Dom-B1': s.domB1,
+                    'PM Dom-B2': s.domB2,
+                    'PM Europe': s.eur,
+                    'PM ROW': s.row,
+                    'PM Add.': s.add,
+                    'PM Returns': s.ret,
+                    'PM Dispatches (Excl. Add/Ret)': s.pmDispatchesCount,
+                    'Total Dispatches': s.total,
+                    'Total Cost Papermail (CHF)': Number(s.pmCost.toFixed(2)),
+                    'Total Cost eBill (CHF)': Number(s.ebillCost.toFixed(2)),
+                    'FG Profit eBill (CHF)': Number(s.ebillProfit.toFixed(2)),
+                    'FG Profit Papermail (CHF)': Number(s.pmProfit.toFixed(2)),
+                    'Total Cost Combined (CHF)': Number(s.cost.toFixed(2)),
+                    'Total Profit Combined (CHF)': Number(s.profit.toFixed(2)),
+                    'Failed rate eBill (%)': Number(failRateEbill.toFixed(2)),
+                    'Failed rate Papermail (%)': Number(failRatePM.toFixed(2))
+                };
+            });
 
             // Add totals row
+            const totalFailRateEbill = (globalTotals.ebillFail / (globalTotals.ebill + globalTotals.ebillFail) * 100) || 0;
+            const totalFailRatePM = (globalTotals.pmFail / (globalTotals.pmDispatchesCount + globalTotals.pmFail) * 100) || 0;
+
             data.push({
                 'Club Name': 'TOTALS',
-                'eBill': globalTotals.ebill,
+                'eBill Count': globalTotals.ebill,
                 'PM Dom-A': globalTotals.domA,
                 'PM Dom-B1': globalTotals.domB1,
                 'PM Dom-B2': globalTotals.domB2,
@@ -370,9 +381,16 @@
                 'PM ROW': globalTotals.row,
                 'PM Add.': globalTotals.add,
                 'PM Returns': globalTotals.ret,
-                'Total': globalTotals.total,
-                'Total Cost (CHF)': Number(globalTotals.cost.toFixed(2)),
-                'FG Profit (CHF)': Number(globalTotals.profit.toFixed(2))
+                'PM Dispatches (Excl. Add/Ret)': globalTotals.pmDispatchesCount,
+                'Total Dispatches': globalTotals.total,
+                'Total Cost Papermail (CHF)': Number(globalTotals.pmCost.toFixed(2)),
+                'Total Cost eBill (CHF)': Number(globalTotals.ebillCost.toFixed(2)),
+                'FG Profit eBill (CHF)': Number(globalTotals.ebillProfit.toFixed(2)),
+                'FG Profit Papermail (CHF)': Number(globalTotals.pmProfit.toFixed(2)),
+                'Total Cost Combined (CHF)': Number(globalTotals.cost.toFixed(2)),
+                'Total Profit Combined (CHF)': Number(globalTotals.profit.toFixed(2)),
+                'Failed rate eBill (%)': Number(totalFailRateEbill.toFixed(2)),
+                'Failed rate Papermail (%)': Number(totalFailRatePM.toFixed(2))
             });
 
             const ws = XLSX.utils.json_to_sheet(data);
