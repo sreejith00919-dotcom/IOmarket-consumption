@@ -1,13 +1,400 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    <title>Fairgate eBill & PaperMailing Consumption Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Fairgate Design System Styles */
+        :root {
+            --fg-dark: #2c3e50;
+            --fg-teal: #3dbdaf;
+            --fg-blue: #5b9bd5;
+            --fg-green: #5ba65b;
+            --fg-orange: #d08030;
+            --fg-purple: #6c5bb5;
+            --fg-bg: #f4f4f4;
+            --fg-border: #ddd;
+        }
 
+        body {
+            background-color: var(--fg-bg);
+            color: #333;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Shell Components */
+        .top-nav { background-color: var(--fg-dark); height: 48px; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; }
+        .fg-logo { font-weight: 700; font-size: 18px; color: white; display: flex; align-items: center; }
+        .fg-gate { color: var(--fg-teal); }
+        .admin-pill { background-color: var(--fg-teal); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 600; margin-left: 8px; margin-right: 24px; }
+        .nav-item { color: #ccc; margin-right: 4px; font-size: 12px; height: 100%; display: flex; align-items: center; padding: 0 15px; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.2s; }
+        .nav-item.active { color: #fff; border-bottom-color: var(--fg-teal); }
+        .nav-item:hover:not(.active) { color: #fff; border-bottom-color: rgba(61, 189, 175, 0.5); }
+
+        .breadcrumb-bar { background: #fff; border-bottom: 1px solid var(--fg-border); padding: 8px 16px; color: #888; font-size: 11px; flex-shrink: 0; }
+        .breadcrumb-sep { margin: 0 8px; font-family: monospace; }
+
+        .content-area { padding: 16px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 1400px; margin: 0 auto; }
+        .page-title { font-size: 18px; font-weight: 400; color: #333; margin-bottom: 4px; }
+
+        /* Panels */
+        .panel { background: #fff; border: 1px solid var(--fg-border); border-radius: 2px; display: flex; flex-direction: column; margin-bottom: 12px; }
+        .panel-header { height: 36px; display: flex; align-items: center; padding: 0 14px; color: #fff; font-weight: 500; cursor: pointer; font-size: 13px; }
+        .panel-header .toggle-icon { margin-right: 8px; font-size: 10px; }
+        .panel-body { padding: 14px; }
+        .panel.collapsed .panel-body { display: none; }
+
+        /* Inputs & Buttons */
+        .input-field { border: 1px solid #ccc; border-radius: 2px; padding: 5px 8px; font-size: 12px; width: 100%; box-sizing: border-box; }
+        .input-field:focus { border-color: var(--fg-blue); outline: none; }
+        .input-group label { display: block; font-size: 11px; color: #666; margin-bottom: 4px; }
+        
+        .btn { border-radius: 2px; font-size: 12px; padding: 5px 14px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; height: 28px; transition: opacity 0.2s; white-space: nowrap; }
+        .btn:active { opacity: 0.8; }
+        .btn-primary { background: var(--fg-blue); color: #fff; }
+        .btn-success { background: var(--fg-green); color: #fff; }
+        .btn-secondary { background: #fff; border-color: #ccc; color: #333; }
+
+        /* Metrics */
+        .metric-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .metric-card { background: #fff; border: 1px solid var(--fg-border); border-radius: 2px; padding: 10px 12px; }
+        .metric-label { font-size: 11px; color: #666; }
+        .metric-value { font-size: 20px; font-weight: 700; color: #333; margin: 2px 0; }
+        .metric-sub { font-size: 10px; color: #888; }
+
+        /* Tables */
+        .table-container { overflow-x: auto; border: 1px solid var(--fg-border); border-radius: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #eef3f8; color: #555; font-weight: 600; text-align: left; padding: 7px 10px; border: 1px solid var(--fg-border); }
+        td { padding: 6px 10px; border: 1px solid #e5e5e5; vertical-align: middle; }
+        tr:hover td { background: #f9fbfd; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: 700; }
+        .footer-row td { background: #f9f9f9 !important; font-weight: 700 !important; border-top: 2px solid #ccc !important; }
+        .badge { border-radius: 10px; font-size: 10px; padding: 2px 7px; font-weight: 600; }
+        .badge-green { background: #dff0d8; color: #2d6a2d; }
+        .badge-red { background: #f9dcdc; color: #922; }
+        
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; border: 1px dashed #ccc; background: white; color: #888; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <span class="fg-logo">fair<span class="fg-gate">gate</span></span>
+        <span class="admin-pill">ADMIN-UI</span>
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Clubs</div>
+        <div class="nav-item active">Sales/CRM</div>
+        <div class="nav-item">Reports</div>
+        <div class="nav-item">Settings</div>
+    </div>
+
+    <div class="breadcrumb-bar">
+        <span>Home</span><span class="breadcrumb-sep">/</span>
+        <span>Sales/CRM</span><span class="breadcrumb-sep">/</span>
+        <span style="color: #333">eBill and PaperMailing Consumption Report</span>
+    </div>
+
+    <div class="content-area">
+        <div class="page-title">eBill & PaperMailing Consumption</div>
+        
+        <!-- Filters -->
+        <div class="panel">
+            <div class="panel-header" style="background-color: var(--fg-blue)" onclick="togglePanel(this)">
+                <span class="toggle-icon">▼</span> Filters
+            </div>
+            <div class="panel-body">
+                <div class="flex flex-wrap items-end gap-4">
+                    <div class="input-group w-40">
+                        <label>From Period</label>
+                        <input type="date" id="fromDate" class="input-field">
+                    </div>
+                    <div class="input-group w-40">
+                        <label>To Period</label>
+                        <input type="date" id="toDate" class="input-field">
+                    </div>
+                    <div class="input-group w-48">
+                        <label>Channel Type</label>
+                        <select class="input-field">
+                            <option>All Channels</option>
+                            <option>eBill Only</option>
+                            <option>PaperMail Only</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-primary" onclick="fetchData()">Fetch Data</button>
+                        <button class="btn btn-secondary" onclick="resetPage()">Reset</button>
+                        <button id="exportBtn" class="btn btn-success" style="display:none" onclick="handleExport()">EXPORT XLSX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsArea" style="display: none; flex-direction: column; gap: 12px;">
+            <!-- Metric Grid -->
+            <div class="metric-grid">
+                <div class="metric-card" style="border-top: 3px solid var(--fg-blue)">
+                    <div class="metric-label">Total Dispatches</div>
+                    <div id="m-total" class="metric-value">0</div>
+                    <div class="metric-sub">Successful units</div>
+                </div>
+                <div class="metric-card" style="border-top: 3px solid var(--fg-purple)">
+                    <div class="metric-label">Total Cost</div>
+                    <div id="m-cost" class="metric-value">CHF 0.00</div>
+                    <div class="metric-sub">Total internal cost</div>
+                </div>
+                <div class="metric-card" style="border-top: 3px solid var(--fg-teal)">
+                    <div class="metric-label">FG Revenue</div>
+                    <div id="m-revenue" class="metric-value">CHF 0.00</div>
+                    <div class="metric-sub">Total billed to clubs</div>
+                </div>
+                <div class="metric-card" style="border-top: 3px solid var(--fg-green)">
+                    <div class="metric-label">FG Net Profit</div>
+                    <div id="m-profit" class="metric-value">CHF 0.00</div>
+                    <div id="m-margin" class="metric-sub">0.0% Profit Margin</div>
+                </div>
+                <div class="metric-card" style="border-top: 3px solid var(--fg-orange)">
+                    <div class="metric-label">Failure Rate</div>
+                    <div id="m-fail-rate" class="metric-value">0.00%</div>
+                    <div id="m-fail-count" class="metric-sub">0 total failed records</div>
+                </div>
+            </div>
+
+            <!-- Table Panel -->
+            <div class="panel">
+                <div class="panel-header" style="background-color: var(--fg-green)" onclick="togglePanel(this)">
+                    <span class="toggle-icon">▼</span> Consumption Details by Club
+                </div>
+                <div class="panel-body p-0">
+                    <div class="table-container">
+                        <table id="consumptionTable">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Club Name</th>
+                                    <th rowspan="2" class="text-center">eBill</th>
+                                    <th colspan="7" class="text-center">PaperMail Breakdown</th>
+                                    <th rowspan="2" class="text-center">Total</th>
+                                    <th rowspan="2" class="text-right">Total Cost</th>
+                                    <th rowspan="2" class="text-right">FG Profit</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-center text-[10px] font-normal uppercase">Dom.-A</th>
+                                    <th class="text-center text-[10px] font-normal uppercase">Dom.-B1</th>
+                                    <th class="text-center text-[10px] font-normal uppercase">Dom.-B2</th>
+                                    <th class="text-center text-[10px] font-normal uppercase">Europe</th>
+                                    <th class="text-center text-[10px] font-normal uppercase">ROW</th>
+                                    <th class="text-center text-[10px] font-normal uppercase">Add.</th>
+                                    <th class="text-center text-[10px] font-normal uppercase">Ret.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                            <tfoot id="tableFooter"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" class="empty-state">
+            <span style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">fairgate</span>
+            <p>Select a period and click "Fetch Data" to populate recon report.</p>
+        </div>
+    </div>
+
+    <script>
+        // Mock Data Strategy
+        const SWISS_CLUBS = [
+            'FC Zürich', 'Grasshopper Club Zürich', 'FC Basel 1893', 'BSC Young Boys',
+            'FC St. Gallen 1879', 'FC Luzern', 'FC Lugano', 'Servette FC',
+            'SC Bern (Hockey)', 'ZSC Lions', 'EV Zug', 'HC Fribourg-Gottéron'
+        ];
+
+        let summaries = [];
+        let globalTotals = {};
+
+        function togglePanel(header) {
+            header.parentElement.classList.toggle('collapsed');
+            const icon = header.querySelector('.toggle-icon');
+            icon.innerText = header.parentElement.classList.contains('collapsed') ? '▲' : '▼';
+        }
+
+        function fetchData() {
+            const from = document.getElementById('fromDate').value;
+            const to = document.getElementById('toDate').value;
+
+            if (!from || !to) {
+                alert('Please select both From and To periods.');
+                return;
+            }
+
+            // Mocking the generation process
+            summaries = SWISS_CLUBS.map(club => {
+                const totalCount = Math.floor(Math.random() * 500) + 50;
+                const ebill = Math.floor(totalCount * 0.6);
+                const pmTotal = totalCount - ebill;
+                
+                // Distribute PM stats
+                const domA = Math.floor(pmTotal * 0.3);
+                const domB1 = Math.floor(pmTotal * 0.1);
+                const domB2 = Math.floor(pmTotal * 0.1);
+                const eur = Math.floor(pmTotal * 0.1);
+                const row = Math.floor(pmTotal * 0.1);
+                const add = Math.floor(pmTotal * 0.2);
+                const ret = pmTotal - (domA + domB1 + domB2 + eur + row + add);
+
+                // Financials
+                const cost = (ebill * 0.15) + (domA * 1.10) + (domB1 * 0.95) + (domB2 * 0.90) + (eur * 1.80) + (row * 2.50) + (add * 0.40) + (ret * 0.80);
+                const revenue = (ebill * 0.25) + (domA * 1.45) + (domB1 * 1.25) + (domB2 * 1.20) + (eur * 2.40) + (row * 3.20) + (add * 0.60) + (ret * 1.05);
+
+                return {
+                    name: club,
+                    ebill, domA, domB1, domB2, eur, row, add, ret,
+                    total: totalCount,
+                    cost,
+                    profit: revenue - cost,
+                    revenue
+                };
+            });
+
+            calculateTotals();
+            renderTable();
+            updateMetrics();
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('resultsArea').style.display = 'flex';
+            document.getElementById('exportBtn').style.display = 'inline-flex';
+        }
+
+        function calculateTotals() {
+            globalTotals = summaries.reduce((acc, s) => ({
+                ebill: acc.ebill + s.ebill,
+                domA: acc.domA + s.domA,
+                domB1: acc.domB1 + s.domB1,
+                domB2: acc.domB2 + s.domB2,
+                eur: acc.eur + s.eur,
+                row: acc.row + s.row,
+                add: acc.add + s.add,
+                ret: acc.ret + s.ret,
+                total: acc.total + s.total,
+                cost: acc.cost + s.cost,
+                profit: acc.profit + s.profit,
+                revenue: acc.revenue + s.revenue,
+                failCount: acc.failCount + Math.floor(Math.random() * 5)
+            }), { ebill: 0, domA: 0, domB1: 0, domB2: 0, eur: 0, row: 0, add: 0, ret: 0, total: 0, cost: 0, profit: 0, revenue: 0, failCount: 0 });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = summaries.map(s => `
+                <tr>
+                    <td class="font-bold underline text-[#5b9bd5] cursor-pointer">${s.name}</td>
+                    <td class="text-center">${s.ebill || '-'}</td>
+                    <td class="text-center">${s.domA || '-'}</td>
+                    <td class="text-center">${s.domB1 || '-'}</td>
+                    <td class="text-center">${s.domB2 || '-'}</td>
+                    <td class="text-center">${s.eur || '-'}</td>
+                    <td class="text-center">${s.row || '-'}</td>
+                    <td class="text-center">${s.add || '-'}</td>
+                    <td class="text-center">${s.ret || '-'}</td>
+                    <td class="text-center font-bold">${s.total.toLocaleString()}</td>
+                    <td class="text-right font-mono">${s.cost.toFixed(2)}</td>
+                    <td class="text-right font-bold font-mono">${s.profit.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const tfoot = document.getElementById('tableFooter');
+            tfoot.innerHTML = `
+                <tr class="footer-row">
+                    <td>TOTALS</td>
+                    <td class="text-center">${globalTotals.ebill.toLocaleString()}</td>
+                    <td class="text-center">${globalTotals.domA.toLocaleString()}</td>
+                    <td class="text-center">${globalTotals.domB1.toLocaleString()}</td>
+                    <td class="text-center">${globalTotals.domB2.toLocaleString()}</td>
+                    <td class="text-center">${globalTotals.eur.toLocaleString()}</td>
+                    <td class="text-center">${globalTotals.row.toLocaleString()}</td>
+                    <td class="text-center">${globalTotals.add.toLocaleString()}</td>
+                    <td class="text-center">${globalTotals.ret.toLocaleString()}</td>
+                    <td class="text-center font-bold">${globalTotals.total.toLocaleString()}</td>
+                    <td class="text-right">CHF ${globalTotals.cost.toFixed(2)}</td>
+                    <td class="text-right">CHF ${globalTotals.profit.toFixed(2)}</td>
+                </tr>
+            `;
+        }
+
+        function updateMetrics() {
+            document.getElementById('m-total').innerText = globalTotals.total.toLocaleString();
+            document.getElementById('m-cost').innerText = 'CHF ' + globalTotals.cost.toFixed(2).toLocaleString();
+            document.getElementById('m-revenue').innerText = 'CHF ' + globalTotals.revenue.toFixed(2).toLocaleString();
+            document.getElementById('m-profit').innerText = 'CHF ' + globalTotals.profit.toFixed(2).toLocaleString();
+            
+            const margin = (globalTotals.profit / globalTotals.revenue * 100) || 0;
+            document.getElementById('m-margin').innerText = margin.toFixed(1) + '% Profit Margin';
+            
+            const failRate = (globalTotals.failCount / (globalTotals.total + globalTotals.failCount) * 100) || 0;
+            document.getElementById('m-fail-rate').innerText = failRate.toFixed(2) + '%';
+            document.getElementById('m-fail-count').innerText = globalTotals.failCount + ' total failed records';
+        }
+
+        function handleExport() {
+            const data = summaries.map(s => ({
+                'Club Name': s.name,
+                'eBill': s.ebill,
+                'PM Dom-A': s.domA,
+                'PM Dom-B1': s.domB1,
+                'PM Dom-B2': s.domB2,
+                'PM Europe': s.eur,
+                'PM ROW': s.row,
+                'PM Add.': s.add,
+                'PM Returns': s.ret,
+                'Total': s.total,
+                'Total Cost (CHF)': Number(s.cost.toFixed(2)),
+                'FG Profit (CHF)': Number(s.profit.toFixed(2))
+            }));
+
+            // Add totals row
+            data.push({
+                'Club Name': 'TOTALS',
+                'eBill': globalTotals.ebill,
+                'PM Dom-A': globalTotals.domA,
+                'PM Dom-B1': globalTotals.domB1,
+                'PM Dom-B2': globalTotals.domB2,
+                'PM Europe': globalTotals.eur,
+                'PM ROW': globalTotals.row,
+                'PM Add.': globalTotals.add,
+                'PM Returns': globalTotals.ret,
+                'Total': globalTotals.total,
+                'Total Cost (CHF)': Number(globalTotals.cost.toFixed(2)),
+                'FG Profit (CHF)': Number(globalTotals.profit.toFixed(2))
+            });
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Consumption");
+            
+            const from = document.getElementById('fromDate').value || 'start';
+            const to = document.getElementById('toDate').value || 'end';
+            const fileName = `ebILl_papermailing consumption_${from}_to_${to}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        function resetPage() {
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            document.getElementById('resultsArea').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('exportBtn').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
