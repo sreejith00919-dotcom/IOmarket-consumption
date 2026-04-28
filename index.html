@@ -65,7 +65,7 @@
         .btn-secondary { background: #fff; border-color: #ccc; color: #333; }
 
         /* Metrics */
-        .metric-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .metric-card { background: #fff; border: 1px solid var(--fg-border); border-radius: 2px; padding: 10px 12px; }
         .metric-label { font-size: 11px; color: #666; }
         .metric-value { font-size: 20px; font-weight: 700; color: #333; margin: 2px 0; }
@@ -152,20 +152,10 @@
                     <div id="m-cost" class="metric-value">CHF 0.00</div>
                     <div class="metric-sub">Total internal cost</div>
                 </div>
-                <div class="metric-card" style="border-top: 3px solid var(--fg-teal)">
-                    <div class="metric-label">FG Revenue</div>
-                    <div id="m-revenue" class="metric-value">CHF 0.00</div>
-                    <div class="metric-sub">Total billed to clubs</div>
-                </div>
                 <div class="metric-card" style="border-top: 3px solid var(--fg-green)">
                     <div class="metric-label">FG Net Profit</div>
                     <div id="m-profit" class="metric-value">CHF 0.00</div>
                     <div id="m-margin" class="metric-sub">0.0% Profit Margin</div>
-                </div>
-                <div class="metric-card" style="border-top: 3px solid var(--fg-orange)">
-                    <div class="metric-label">Failure Rate</div>
-                    <div id="m-fail-rate" class="metric-value">0.00%</div>
-                    <div id="m-fail-count" class="metric-sub">0 total failed records</div>
                 </div>
             </div>
 
@@ -185,6 +175,7 @@
                                     <th rowspan="2" class="text-center">Total</th>
                                     <th rowspan="2" class="text-right">Total Cost</th>
                                     <th rowspan="2" class="text-right">FG Profit</th>
+                                    <th rowspan="2" class="text-center">Fail. Rate</th>
                                 </tr>
                                 <tr>
                                     <th class="text-center text-[10px] font-normal uppercase">Dom.-A</th>
@@ -256,13 +247,18 @@
                 const cost = (ebill * 0.15) + (domA * 1.10) + (domB1 * 0.95) + (domB2 * 0.90) + (eur * 1.80) + (row * 2.50) + (add * 0.40) + (ret * 0.80);
                 const revenue = (ebill * 0.25) + (domA * 1.45) + (domB1 * 1.25) + (domB2 * 1.20) + (eur * 2.40) + (row * 3.20) + (add * 0.60) + (ret * 1.05);
 
+                const failCount = Math.floor(Math.random() * 5);
+                const failRate = (failCount / (totalCount + failCount)) * 100;
+
                 return {
                     name: club,
                     ebill, domA, domB1, domB2, eur, row, add, ret,
                     total: totalCount,
                     cost,
                     profit: revenue - cost,
-                    revenue
+                    revenue,
+                    failCount,
+                    failRate
                 };
             });
 
@@ -309,6 +305,11 @@
                     <td class="text-center font-bold">${s.total.toLocaleString()}</td>
                     <td class="text-right font-mono">${s.cost.toFixed(2)}</td>
                     <td class="text-right font-bold font-mono">${s.profit.toFixed(2)}</td>
+                    <td class="text-center">
+                        <span class="badge ${s.failCount > 0 ? 'badge-red' : 'badge-green'}">
+                            ${s.failRate.toFixed(2)}%
+                        </span>
+                    </td>
                 </tr>
             `).join('');
 
@@ -327,6 +328,7 @@
                     <td class="text-center font-bold">${globalTotals.total.toLocaleString()}</td>
                     <td class="text-right">CHF ${globalTotals.cost.toFixed(2)}</td>
                     <td class="text-right">CHF ${globalTotals.profit.toFixed(2)}</td>
+                    <td class="text-center">${((globalTotals.failCount / (globalTotals.total + globalTotals.failCount)) * 100).toFixed(2)}%</td>
                 </tr>
             `;
         }
@@ -334,15 +336,10 @@
         function updateMetrics() {
             document.getElementById('m-total').innerText = globalTotals.total.toLocaleString();
             document.getElementById('m-cost').innerText = 'CHF ' + globalTotals.cost.toFixed(2).toLocaleString();
-            document.getElementById('m-revenue').innerText = 'CHF ' + globalTotals.revenue.toFixed(2).toLocaleString();
             document.getElementById('m-profit').innerText = 'CHF ' + globalTotals.profit.toFixed(2).toLocaleString();
             
             const margin = (globalTotals.profit / globalTotals.revenue * 100) || 0;
             document.getElementById('m-margin').innerText = margin.toFixed(1) + '% Profit Margin';
-            
-            const failRate = (globalTotals.failCount / (globalTotals.total + globalTotals.failCount) * 100) || 0;
-            document.getElementById('m-fail-rate').innerText = failRate.toFixed(2) + '%';
-            document.getElementById('m-fail-count').innerText = globalTotals.failCount + ' total failed records';
         }
 
         function handleExport() {
@@ -358,7 +355,8 @@
                 'PM Returns': s.ret,
                 'Total': s.total,
                 'Total Cost (CHF)': Number(s.cost.toFixed(2)),
-                'FG Profit (CHF)': Number(s.profit.toFixed(2))
+                'FG Profit (CHF)': Number(s.profit.toFixed(2)),
+                'Fail Rate (%)': Number(s.failRate.toFixed(2))
             }));
 
             // Add totals row
